@@ -41,7 +41,7 @@ with app.app_context():
         db.create_all()
         print("Database tables verified/created successfully!")
     except Exception as e:
-        print(f"Error initializing database: {e}")
+        print(f"Error initializing data: {e}")
 # --- ROUTES ---
 
 @app.route('/')
