@@ -14,9 +14,16 @@ from models import db, User, Item
 load_dotenv()
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL') or 'sqlite:///neighbourly.db'
+
+# --- PRODUCTION CONFIGURATION ---
+# Render provides DATABASE_URL. We ensure it starts with 'postgresql://' for SQLAlchemy 1.4+
+database_uri = os.environ.get('DATABASE_URL')
+if database_uri and database_uri.startswith("postgres://"):
+    database_uri = database_uri.replace("postgres://", "postgresql://", 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///neighbourly.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'super-secret-key'
+app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'super-secret-key-change-in-prod'
 
 # Initialize db with the app
 db.init_app(app)
@@ -25,9 +32,15 @@ migrate = Migrate(app, db)
 bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 ma = Marshmallow(app)
-CORS(app)
+
+# In production, you will replace '*' with your actual Vercel URL
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
 # --- ROUTES ---
+
+@app.route('/')
+def home():
+    return {"message": "Welcome to the Neighbourly API", "status": "Online"}
 
 @app.route('/register', methods=['POST'])
 def register():
@@ -48,7 +61,7 @@ def login():
     user = User.query.filter_by(username=data.get('username')).first()
     
     if user and bcrypt.check_password_hash(user._password_hash, data.get('password')):
-        # FIX: Convert user.id to a string
+        # Convert user.id to string for JWT identity
         access_token = create_access_token(identity=str(user.id)) 
         return jsonify(access_token=access_token), 200
     
@@ -74,8 +87,6 @@ def add_item():
     db.session.commit()
     return jsonify(new_item.to_dict()), 201
 
-# In app.py
-
 @app.route('/reservations', methods=['POST'])
 @jwt_required()
 def create_reservation():
@@ -97,8 +108,7 @@ def create_reservation():
     if not item.is_available:
         return jsonify({"error": "Item is already reserved"}), 400
 
-    # FIX: Manually insert into the reservations table to include the end_date
-    from models import reservations # Import the table object
+    from models import reservations 
     
     new_res_query = reservations.insert().values(
         user_id=current_user_id,
@@ -108,10 +118,7 @@ def create_reservation():
     )
     
     db.session.execute(new_res_query)
-    
-    # Mark the item as unavailable
     item.is_available = False
-    
     db.session.commit()
     
     return jsonify({"message": f"Successfully reserved {item.name} until {end_date_str}"}), 201
@@ -120,11 +127,8 @@ def create_reservation():
 @jwt_required()
 def get_user_reservations():
     current_user_id = get_jwt_identity()
-    
-    # Query the reservations table for the current user
     from models import reservations
     
-    # We select the item details joined with the reservation data
     query = db.select(Item, reservations.c.end_date).join(
         reservations, Item.id == reservations.c.item_id
     ).where(reservations.c.user_id == current_user_id)
@@ -134,7 +138,6 @@ def get_user_reservations():
     user_rentals = []
     for item, end_date in results:
         item_dict = item.to_dict()
-        # Add the specific return date string to the dictionary payload
         item_dict['end_date'] = end_date.strftime('%Y-%m-%d') if end_date else None
         user_rentals.append(item_dict)
         
@@ -144,13 +147,10 @@ def get_user_reservations():
 @jwt_required()
 def get_user_items():
     current_user_id = get_jwt_identity()
-    
-    # Get all items uploaded by this specific user
     my_items = Item.query.filter_by(user_id=current_user_id).all()
     return jsonify([item.to_dict() for item in my_items]), 200
-@app.route('/')
-def home():
-    return {"message": "Welcome to the Neighbourly API"}
 
 if __name__ == '__main__':
-    app.run(port=os.environ.get('FLASK_RUN_PORT') or 5555, debug=True)
+    # Use environment port for deployment, fallback to 5555
+    port = int(os.environ.get('PORT', 5555))
+    app.run(host='0.0.0.0', port=port)
