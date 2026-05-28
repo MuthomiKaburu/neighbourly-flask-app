@@ -1,76 +1,112 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
 import api from '../services/api';
 import toast from 'react-hot-toast';
-import { LogIn, User, Lock } from 'lucide-react';
+import { UserPlus, Mail, Lock, User } from 'lucide-react';
 
-const Login = () => {
-  const [formData, setFormData] = useState({ username: '', password: '' });
-  const { login } = useContext(AuthContext);
+const Register = () => {
+  const [formData, setFormData] = useState({
+    username: '',
+    email: '',
+    password: ''
+  });
+  const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = async (e) => {
+  const handleRegister = async (e) => {
     e.preventDefault();
-    const loadingToast = toast.loading('Authenticating credentials...');
+    setLoading(true);
+
     try {
-      const res = await api.post('/login', formData);
-      login(res.data.access_token);
-      toast.success('Welcome back to the neighborhood!', { id: loadingToast });
-      navigate('/dashboard');
+      // Hits the /register endpoint on your Flask backend
+      await api.post('/register', formData);
+      toast.success("Account created successfully! Please log in.");
+      navigate('/login'); // Redirects to login page after success
     } catch (err) {
-      toast.error('Invalid username or password. Please try again.', { id: loadingToast });
+      const errorMsg = err.response?.data?.error || "Registration failed. Please try again.";
+      toast.error(errorMsg);
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-slate-950 text-slate-100 p-4">
-      <div className="w-full max-w-md p-8 bg-slate-900/60 backdrop-blur-xl rounded-3xl border border-slate-800 shadow-2xl">
-        <div className="flex flex-col items-center mb-8">
-          <div className="p-3.5 bg-blue-500/10 text-blue-400 rounded-2xl border border-blue-500/20 mb-4">
-            <LogIn className="w-6 h-6" />
+    <div className="min-h-screen bg-slate-950 flex items-center justify-center p-4">
+      <div className="w-full max-w-md bg-slate-900/50 border border-slate-800 p-8 rounded-3xl backdrop-blur-xl shadow-2xl">
+        <div className="text-center mb-10">
+          <div className="inline-flex p-3 bg-blue-600/10 text-blue-400 rounded-2xl border border-blue-500/20 mb-4">
+            <UserPlus className="w-6 h-6" />
           </div>
-          <h2 className="text-3xl font-extrabold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Welcome Back</h2>
-          <p className="text-slate-400 text-sm mt-1.5">Sign in to sync with your local network</p>
+          <h1 className="text-3xl font-extrabold text-white tracking-tight">Create Account</h1>
+          <p className="text-slate-400 mt-2">Join your local neighborhood network</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Username</label>
-            <div className="relative mt-2">
-              <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input 
+        <form onSubmit={handleRegister} className="space-y-5">
+          {/* Username Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Username</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <input
+                required
                 type="text"
-                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:border-blue-500 text-slate-200 outline-none transition"
-                placeholder="muthomi"
-                onChange={(e) => setFormData({...formData, username: e.target.value})}
-                required
+                placeholder="johndoe"
+                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                onChange={(e) => setFormData({ ...formData, username: e.target.value })}
               />
             </div>
           </div>
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-slate-400">Password</label>
-            <div className="relative mt-2">
-              <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
-              <input 
+
+          {/* Email Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Email Address</label>
+            <div className="relative">
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <input
+                required
+                type="email"
+                placeholder="name@example.com"
+                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {/* Password Field */}
+          <div className="space-y-2">
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-500 ml-1">Password</label>
+            <div className="relative">
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
+              <input
+                required
                 type="password"
-                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl focus:border-blue-500 text-slate-200 outline-none transition"
                 placeholder="••••••••"
-                onChange={(e) => setFormData({...formData, password: e.target.value})}
-                required
+                className="w-full pl-11 pr-4 py-3 bg-slate-950/50 border border-slate-800 rounded-xl text-slate-200 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 outline-none transition"
+                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               />
             </div>
           </div>
-          <button className="w-full py-3.5 bg-blue-600 hover:bg-blue-500 font-bold rounded-xl active:scale-98 transition flex items-center justify-center gap-2 shadow-xl shadow-blue-600/10 text-white mt-4">
-            <span>Sign In</span>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full bg-blue-600 hover:bg-blue-500 disabled:bg-slate-800 disabled:text-slate-500 text-white py-3.5 rounded-xl font-bold transition-all duration-200 shadow-lg shadow-blue-600/20 active:scale-[0.98] mt-4"
+          >
+            {loading ? "Creating Account..." : "Sign Up"}
           </button>
         </form>
-        <p className="mt-8 text-center text-slate-400 text-sm">
-          Don't have an account? <Link to="/register" className="text-blue-400 hover:text-blue-300 font-semibold transition hover:underline">Register</Link>
-        </p>
+
+        <div className="mt-8 text-center border-t border-slate-800/60 pt-6">
+          <p className="text-slate-400 text-sm">
+            Already have an account?{' '}
+            <Link to="/login" className="text-blue-400 hover:text-blue-300 font-semibold transition">
+              Sign In
+            </Link>
+          </p>
+        </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default Register;
