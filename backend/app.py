@@ -25,7 +25,6 @@ app.config['SQLALCHEMY_DATABASE_URI'] = database_uri or 'sqlite:///neighbourly.d
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 app.config['JWT_SECRET_KEY'] = os.environ.get('JWT_SECRET_KEY') or 'super-secret-key-change-in-prod'
 
-# Initialize db with the app
 db.init_app(app)
 
 migrate = Migrate(app, db)
@@ -33,8 +32,16 @@ bcrypt = Bcrypt(app)
 jwt = JWTManager(app)
 ma = Marshmallow(app)
 
-# In production, you will replace '*' with your actual Vercel URL
-CORS(app, resources={r"/*": {"origins": "https://neighbourly-flask-app.vercel.app"}})
+# Permissive CORS to make absolutely sure the handshake works
+CORS(app, resources={r"/*": {"origins": "*"}}) 
+
+# AUTOMATIC DATABASE INITIALIZATION FOR FREE TIER
+with app.app_context():
+    try:
+        db.create_all()
+        print("Database tables verified/created successfully!")
+    except Exception as e:
+        print(f"Error initializing database: {e}")
 # --- ROUTES ---
 
 @app.route('/')
