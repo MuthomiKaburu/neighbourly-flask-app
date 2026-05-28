@@ -5,12 +5,14 @@ import api from '../services/api';
 import toast from 'react-hot-toast';
 import { LogIn, User, Lock } from 'lucide-react';
 
+
 const Login = () => {
   const [formData, setFormData] = useState({ username: '', password: '' });
   const { login } = useContext(AuthContext);
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
+    
     e.preventDefault();
     const loadingToast = toast.loading('Authenticating credentials...');
     try {
