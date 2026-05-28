@@ -34,7 +34,7 @@ jwt = JWTManager(app)
 ma = Marshmallow(app)
 
 # In production, you will replace '*' with your actual Vercel URL
-CORS(app, resources={r"/*": {"origins": "https://neighbourly-flask-app.vercel.app"}}) 
+CORS(app, resources={r"/*": {"origins": "*"}}) 
 
 # --- ROUTES ---
 
